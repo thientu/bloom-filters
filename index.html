@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Home</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Home</h1>
+
+    
+
+
+
+    
+
+
+    <h3> </h3>
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    <section>
+        <article><h1>Bloom-Filters</h1><p><a href="https://travis-ci.org/Callidon/bloom-filters"><img src="https://travis-ci.org/Callidon/bloom-filters.svg?branch=master" alt="Build Status"></a> <a href="https://codecov.io/gh/Callidon/bloom-filters"><img src="https://codecov.io/gh/Callidon/bloom-filters/branch/master/graph/badge.svg" alt="codecov"></a></p>
+<p><strong>Keywords:</strong> bloom, filter, bloom filter, probabilistic, datastructure</p>
+<p>JS implementation of probabilistic data structures: Bloom Filter (and its derived), HyperLogLog, Count-Min Sketch, Top-K and MinHash</p>
+<p><a href="https://callidon.github.io/bloom-filters/">Online documentation</a></p>
+<h1>Table of contents</h1><ul>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#data-structures">Data structures</a><ul>
+<li><a href="#classic-bloom-filter">Classic Bloom Filter</a></li>
+<li><a href="#partitioned-bloom-filter">Partitioned Bloom Filter</a></li>
+<li><a href="#cuckoo-filter">Cuckoo Filter</a></li>
+<li><a href="#count-min-sketch">Count Min Sketch</a></li>
+</ul>
+</li>
+<li><a href="#export-and-import">Export and import</a></li>
+<li><a href="#documentation">Documentation</a></li>
+<li><a href="#tests">Tests</a></li>
+<li><a href="#references">References</a></li>
+<li><a href="#license">License</a></li>
+</ul>
+<h2>Installation</h2><pre class="prettyprint source lang-bash"><code>  npm install bloom-filters --save</code></pre><h2>Data structures</h2><h3>Classic Bloom Filter</h3><p>A Bloom filter is a space-efficient probabilistic data structure, conceived by Burton Howard Bloom in 1970,
+that is used to test whether an element is a member of a set. False positive matches are possible, but false negatives are not.</p>
+<p><strong>Reference:</strong> Bloom, B. H. (1970). <em>Space/time trade-offs in hash coding with allowable errors</em>. Communications of the ACM, 13(7), 422-426.
+(<a href="http://crystal.uta.edu/~mcguigan/cse6350/papers/Bloom.pdf">Full text article</a>)</p>
+<pre class="prettyprint source lang-javascript"><code>const { BloomFilter } = require('bloom-filters')
+
+// create a Bloom Filter with size = 15 and 1% error rate
+let filter = new BloomFilter(15, 0.01)
+
+// alternatively, create a Bloom Filter from an array with 1% error rate
+filter = BloomFilter.from([ 'alice', 'bob' ], 0.01)
+
+// add some value in the filter
+filter.add('alice')
+filter.add('bob')
+
+// lookup for some data
+console.log(filter.has('bob')) // output: true
+console.log(filter.has('daniel')) // output: false
+
+// print false positive rate (around 0.01)
+console.log(filter.rate())</code></pre><h3>Partitioned Bloom Filter</h3><p>A Partitioned Bloom Filter is a variation of a classic Bloom Filter.</p>
+<p>This filter works by partitioning the M-sized bit array into k slices of size <code>m = M/k</code> bits, <code>k = nb of hash functions</code> in the filter.
+Each hash function produces an index over <code>m</code> for its respective slice.
+Thus, each element is described by exactly <code>k</code> bits, meaning the distribution of false positives is uniform across all elements.</p>
+<p>Be careful, as a Partitioned Bloom Filter have much higher collison risks that a classic Bloom Filter on small sets of data.</p>
+<p><strong>Reference:</strong> Chang, F., Feng, W. C., &amp; Li, K. (2004, March). <em>Approximate caches for packet classification.</em> In INFOCOM 2004. Twenty-third AnnualJoint Conference of the IEEE Computer and Communications Societies (Vol. 4, pp. 2196-2207). IEEE.
+(<a href="https://pdfs.semanticscholar.org/0e18/e24b37a1f4196fddf8c9ff8e4368b74cfd88.pdf">Full text article</a>)</p>
+<p>Otherwise, a Partitioned Bloom Filter <strong>follows the same API than a <a href="#classic-bloom-filter">Classic Bloom Filter</a></strong>.</p>
+<pre class="prettyprint source lang-javascript"><code>const { PartitionedBloomFilter } = require('bloom-filters')
+
+// create a Partitioned Bloom Filter with size = 15 and 1% error rate
+const filter = new PartitionedBloomFilter(15, 0.01)
+
+// now use it like a classic bloom filter!
+// ...</code></pre><h3>Cuckoo Filter</h3><p>Cuckoo filters improve on Bloom filters by supporting deletion, limited counting, and bounded False positive rate with similar storage efficiency as a standard Bloom Filter.</p>
+<p><strong>Reference:</strong> Fan, B., Andersen, D. G., Kaminsky, M., &amp; Mitzenmacher, M. D. (2014, December). <em>Cuckoo filter: Practically better than bloom.</em> In Proceedings of the 10th ACM International on Conference on emerging Networking Experiments and Technologies (pp. 75-88). ACM.
+(<a href="https://www.cs.cmu.edu/~dga/papers/cuckoo-conext2014.pdf">Full text article</a>)</p>
+<pre class="prettyprint source lang-javascript"><code>const { CuckooFilter } = require('bloom-filters')
+
+// create a Cuckoo Filter with size = 15, fingerprint length = 3 and bucket size = 2
+const filter = new CuckooFilter(15, 3, 2)
+filter.add('alice')
+filter.add('bob')
+
+// lookup for some data
+console.log(filter.has('bob')) // output: true
+console.log(filter.has('daniel')) // output: false
+
+// remove something
+filter.remove('bob')
+console.log(filter.has('bob')) // output: false</code></pre><h3>Count Min Sketch</h3><p>The Count Min Sketch (CM sketch) is a probabilistic data structure that serves as a frequency table of events in a stream of data.
+It uses hash functions to map events to frequencies, but unlike a hash table uses only sub-linear space, at the expense of overcounting some events due to collisions.</p>
+<p><strong>Reference:</strong> Cormode, G., &amp; Muthukrishnan, S. (2005). <em>An improved data stream summary: the count-min sketch and its applications.</em> Journal of Algorithms, 55(1), 58-75.
+(<a href="http://vaffanculo.twiki.di.uniroma1.it/pub/Ing_algo/WebHome/p14_Cormode_JAl_05.pdf">Full text article</a>)</p>
+<pre class="prettyprint source lang-javascript"><code>const { CountMinSketch } = require('bloom-filters')
+
+// create a new count min sketch with epsilon = 0.001 and delta = 0.99
+const sketch = new CountMinSketch(0.001, 0.99)
+
+// push some occurrences in the sketch
+sketch.update('alice')
+sketch.update('alice')
+sketch.update('bob')
+
+// count occurrences
+console.log(sketch.count('alice')) // output: 2
+console.log(sketch.count('bob')) // output: 1
+console.log(sketch.count('daniel')) // output: 0</code></pre><h2>Export and import</h2><p>All data structures exposed by this package can be <strong>exported and imported to/from JSON</strong>:</p>
+<ul>
+<li>Use the method <code>saveAsJSON()</code> to export any data structures into a JSON object.</li>
+<li>Use the static method <code>fromJSON(json)</code> to load a data structure from a JSON object.</li>
+</ul>
+<pre class="prettyprint source lang-javascript"><code>const { BloomFilter } = require('bloom-filters')
+
+const filter = new BloomFilter(15, 0.01)
+filter.add('alice')
+
+// export a bloom filter to JSON
+const exported = filter.saveAsJSON()
+
+// do something with the JSON object (save it as file, send it to a server, etc)
+// ...
+
+// import the same filter from its JSON export
+const importedFilter = BloomFilter.fromJSON(exported)
+console.log(filter.has('alice')) // output: true
+console.log(filter.has('bob')) // output: false</code></pre><h2>Documentation</h2><p>See <a href="https://callidon.github.io/bloom-filters/">documentation online</a> or generate it in directory <code>doc/</code> with: <code>npm run doc</code></p>
+<h2>Tests</h2><p>Running with Mocha + Chai</p>
+<pre class="prettyprint source lang-bash"><code># run tests
+npm test
+
+# generate coverage with istanbul
+npm run coverage</code></pre><h2>References</h2><ul>
+<li><a href="http://crystal.uta.edu/~mcguigan/cse6350/papers/Bloom.pdf">Classic Bloom Filter</a>: Bloom, B. H. (1970). <em>Space/time trade-offs in hash coding with allowable errors.</em> Communications of the ACM, 13(7), 422-426.</li>
+<li><a href="https://pdfs.semanticscholar.org/0e18/e24b37a1f4196fddf8c9ff8e4368b74cfd88.pdf">Partitioned Bloom Filter</a>: Chang, F., Feng, W. C., &amp; Li, K. (2004, March). <em>Approximate caches for packet classification.</em> In INFOCOM 2004. Twenty-third AnnualJoint Conference of the IEEE Computer and Communications Societies (Vol. 4, pp. 2196-2207). IEEE.</li>
+<li><a href="https://www.cs.cmu.edu/~dga/papers/cuckoo-conext2014.pdf">Cuckoo Filter</a>: Fan, B., Andersen, D. G., Kaminsky, M., &amp; Mitzenmacher, M. D. (2014, December). <em>Cuckoo filter: Practically better than bloom.</em> In Proceedings of the 10th ACM International on Conference on emerging Networking Experiments and Technologies (pp. 75-88). ACM.</li>
+<li><a href="http://vaffanculo.twiki.di.uniroma1.it/pub/Ing_algo/WebHome/p14_Cormode_JAl_05.pdf">Count Min Sketch</a>: Cormode, G., &amp; Muthukrishnan, S. (2005). <em>An improved data stream summary: the count-min sketch and its applications.</em> Journal of Algorithms, 55(1), 58-75.</li>
+</ul>
+<h2>License</h2><p><a href="https://github.com/Callidon/bloom-filters/blob/master/LICENSE">MIT License</a></p></article>
+    </section>
+
+
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="BloomFilter.html">BloomFilter</a></li><li><a href="CountMinSketch.html">CountMinSketch</a></li><li><a href="CuckooFilter.html">CuckooFilter</a></li><li><a href="Exportable.html">Exportable</a></li><li><a href="PartitionedBloomFilter.html">PartitionedBloomFilter</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cloneField">cloneField</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Wed Mar 28 2018 10:17:34 GMT+0000 (UTC)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
